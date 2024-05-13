@@ -1,9 +1,9 @@
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.timezone import now
-from django.views import View
 from django.views.generic import (
     ListView,
     DetailView,
@@ -13,6 +13,9 @@ from django.views.generic import (
 )
 
 from .utils import (
+    IsAuthorMixin,
+    SuccessURLMixin,
+    CommentMixinView,
     all_posts_query,
     published_posts_query,
     check_publication_valid,
@@ -21,31 +24,13 @@ from .models import Post, User, Category, Comment
 from .forms import UserEditForm, PostEditForm, CommentEditForm
 
 
-class CommentMixinView(LoginRequiredMixin, View):
-    """Mixin для редактирования и удаления комментария."""
-
-    model = Comment
-    template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_pk'
-
-    def dispatch(self, request, *args, **kwargs):
-        if self.get_object().author != request.user:
-            return redirect('blog:post_detail', pk=self.kwargs['pk'])
-        check_publication_valid(self.kwargs)
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_success_url(self):
-        pk = self.kwargs['pk']
-        return reverse('blog:post_detail', kwargs={'pk': pk})
-
-
 class IndexView(ListView):
     """Главная страница со списком постов."""
 
     model = Post
     template_name = 'blog/index.html'
     queryset = published_posts_query()
-    paginate_by = 10
+    paginate_by = settings.LIMIT_OF_POSTS
 
 
 class CategoryPostsView(IndexView):
@@ -102,7 +87,6 @@ class PostDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.is_valid_post_data():
-            context['flag'] = True
             context['form'] = CommentEditForm()
         context['comments'] = self.object.comments.all().select_related(
             'author'
@@ -150,33 +134,24 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return reverse('blog:profile', kwargs={'username': username})
 
 
-class PostUpdateView(LoginRequiredMixin, UpdateView):
+class PostUpdateView(
+    LoginRequiredMixin,
+    IsAuthorMixin,
+    SuccessURLMixin,
+    UpdateView,
+):
     """Редактирование поста."""
 
     model = Post
     form_class = PostEditForm
     template_name = 'blog/create.html'
 
-    def dispatch(self, request, *args, **kwargs):
-        if self.get_object().author != request.user:
-            return redirect('blog:post_detail', pk=self.kwargs['pk'])
-        return super().dispatch(request, *args, **kwargs)
 
-    def get_success_url(self):
-        pk = self.kwargs['pk']
-        return reverse('blog:post_detail', kwargs={'pk': pk})
-
-
-class PostDeleteView(LoginRequiredMixin, DeleteView):
+class PostDeleteView(LoginRequiredMixin, IsAuthorMixin, DeleteView):
     """Удаление поста."""
 
     model = Post
     template_name = 'blog/create.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        if self.get_object().author != request.user:
-            return redirect('blog:post_detail', pk=self.kwargs['pk'])
-        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -188,7 +163,7 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         return reverse_lazy('blog:profile', kwargs={'username': username})
 
 
-class CommentCreateView(LoginRequiredMixin, CreateView):
+class CommentCreateView(LoginRequiredMixin, SuccessURLMixin, CreateView):
     """Создание комментария."""
 
     model = Comment
@@ -206,10 +181,6 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         if self.post_data.author != self.request.user:
             self.send_author_email()
         return super().form_valid(form)
-
-    def get_success_url(self):
-        pk = self.kwargs['pk']
-        return reverse('blog:post_detail', kwargs={'pk': pk})
 
     def send_author_email(self):
         post_url = self.request.build_absolute_uri(self.get_success_url())

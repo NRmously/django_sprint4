@@ -1,9 +1,16 @@
 from django.contrib import admin
 
-from .models import Category, Location, Post
+from .models import Category, Location, Post, Comment
 
 
 admin.site.empty_value_display = 'Не задано'
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    search_files = ('text', )
+    list_display = ('author',)
+    list_filter = ('created_at', )
 
 
 @admin.register(Category)

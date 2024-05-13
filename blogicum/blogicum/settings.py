@@ -122,7 +122,7 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MAX_STRING_LENGTH = 256
-LIMIT_OF_POSTS = 5
+LIMIT_OF_POSTS = 10
 
 LOGIN_REDIRECT_URL = 'blog:index'
 LOGIN_URL = 'login'
@@ -143,3 +143,8 @@ INTERNAL_IPS = [
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 # Указываем директорию, в которую будут сохраняться файлы писем:
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
+
+# Значения ошибок
+ACCESS_DENIED = 403
+PAGE_NOT_FOUND = 404
+SERVER_ERROR = 500

@@ -6,24 +6,33 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-class BaseModel(models.Model):
-    """Абстрактная модель. Добвляет флаги is_published и created_at"""
+class IsPublishedModel(models.Model):
+    """Абстрактная модель. Добвляет флаг is_published"""
 
     is_published = models.BooleanField(
         default=True,
-        verbose_name='Опубликовано',
         help_text='Снимите галочку, чтобы скрыть публикацию.',
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлено',
+        verbose_name='Опубликовано'
     )
 
     class Meta:
         abstract = True
 
 
-class Location(BaseModel):
+class CreatedAtModel(models.Model):
+    """Абстрактная модель. Добвляет флаг created_at"""
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Добавлено'
+    )
+
+    class Meta:
+        abstract = True
+        ordering = ('created_at', )
+
+
+class Location(IsPublishedModel, CreatedAtModel):
     name = models.CharField(
         max_length=settings.MAX_STRING_LENGTH,
         verbose_name='Название места',
@@ -38,7 +47,7 @@ class Location(BaseModel):
         return self.name
 
 
-class Category(BaseModel):
+class Category(IsPublishedModel, CreatedAtModel):
     title = models.CharField(
         max_length=settings.MAX_STRING_LENGTH,
         verbose_name='Заголовок'
@@ -60,7 +69,7 @@ class Category(BaseModel):
         return self.title
 
 
-class Post(BaseModel):
+class Post(IsPublishedModel, CreatedAtModel):
     title = models.CharField(
         max_length=settings.MAX_STRING_LENGTH,
         verbose_name='Заголовок'
@@ -104,7 +113,7 @@ class Post(BaseModel):
         return self.title
 
 
-class Comment(models.Model):
+class Comment(CreatedAtModel):
     text = models.TextField(
         verbose_name='Комментарий',
     )
@@ -117,10 +126,6 @@ class Comment(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор',
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлено',
     )
 
     class Meta:

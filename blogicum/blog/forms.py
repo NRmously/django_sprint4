@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django import forms
 
 from .models import User, Post, Comment
@@ -11,13 +12,21 @@ class UserEditForm(forms.ModelForm):
 
 
 class PostEditForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.initial['pub_date'] = timezone.now(
+            ).strftime("%Y-%m-%dT%H:%M")
 
     class Meta:
         model = Post
-        exclude = ('author', 'created_at')
+        exclude = ('author', )
         widgets = {
             'text': forms.Textarea({'rows': '5'}),
-            'pub_date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'pub_date': forms.DateTimeInput(
+                format="%Y-%m-%dT%H:%M",
+                attrs={'type': 'datetime-local'},
+            ),
         }
 
 
