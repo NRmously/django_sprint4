@@ -12,6 +12,7 @@ class UserEditForm(forms.ModelForm):
 
 
 class PostEditForm(forms.ModelForm):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.instance.pk:
